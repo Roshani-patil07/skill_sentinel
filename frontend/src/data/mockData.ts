@@ -45,11 +45,13 @@ export interface FieldInspectionItem {
   state_name: string
   assigned_auditor: string
   auditor_designation: string
-  type: 'SURPRISE_VIGILANCE' | 'ROUTINE_ANNUAL' | 'QR_ASSET_AUDIT' | 'SPECIAL_COMPLIANCE'
-  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'FLAGGED'
+  type: 'SURPRISE_VIGILANCE' | 'ROUTINE_ANNUAL' | 'QR_ASSET_AUDIT' | 'SPECIAL_COMPLIANCE' | string
+  inspection_type?: string
+  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'FLAGGED' | string
   scheduled_date: string
   geofence_verified: boolean
   findings_summary: string
+  findings?: string
   evidence_count: number
 }
 
@@ -566,10 +568,12 @@ export const MOCK_INSPECTIONS: FieldInspectionItem[] = [
     assigned_auditor: 'Auditor Rajesh Kulkarni',
     auditor_designation: 'Senior Vigilance Officer, Maharashtra SSDM',
     type: 'SURPRISE_VIGILANCE',
+    inspection_type: 'SURPRISE_VIGILANCE',
     status: 'SCHEDULED',
     scheduled_date: 'Tomorrow, 10:30 IST',
     geofence_verified: true,
     findings_summary: 'Dispatched following 3 consecutive days of attendance discrepancy >60% and missing CNC training asset flag.',
+    findings: 'Dispatched following 3 consecutive days of attendance discrepancy >60% and missing CNC training asset flag.',
     evidence_count: 4,
   },
   {
@@ -583,10 +587,12 @@ export const MOCK_INSPECTIONS: FieldInspectionItem[] = [
     assigned_auditor: 'Auditor Priyanka Verma',
     auditor_designation: 'Special Flying Squad Inspector, MSDE',
     type: 'QR_ASSET_AUDIT',
+    inspection_type: 'QR_ASSET_AUDIT',
     status: 'IN_PROGRESS',
     scheduled_date: 'Today, 14:00 IST',
     geofence_verified: true,
     findings_summary: 'On-site verification of 28 sanctioned PC workstations and 1 reported missing CNC machine.',
+    findings: 'On-site verification of 28 sanctioned PC workstations and 1 reported missing CNC machine.',
     evidence_count: 8,
   },
   {
@@ -600,10 +606,12 @@ export const MOCK_INSPECTIONS: FieldInspectionItem[] = [
     assigned_auditor: 'Auditor Amit Srivastava',
     auditor_designation: 'Joint Director, UP Skill Development Mission',
     type: 'SPECIAL_COMPLIANCE',
+    inspection_type: 'SPECIAL_COMPLIANCE',
     status: 'FLAGGED',
     scheduled_date: '2026-10-02',
     geofence_verified: true,
     findings_summary: 'Severe ghost attendance confirmed (79.2% deficit). Center failed to produce physical batch logs for September.',
+    findings: 'Severe ghost attendance confirmed (79.2% deficit). Center failed to produce physical batch logs for September.',
     evidence_count: 14,
   },
   {
@@ -617,10 +625,12 @@ export const MOCK_INSPECTIONS: FieldInspectionItem[] = [
     assigned_auditor: 'Auditor Suma Rao',
     auditor_designation: 'District Skill Development Officer',
     type: 'ROUTINE_ANNUAL',
+    inspection_type: 'ROUTINE_ANNUAL',
     status: 'COMPLETED',
     scheduled_date: '2026-09-28',
     geofence_verified: true,
     findings_summary: '100% equipment audit passed. All 48 sanctioned assets tagged and active. Batch attendance 96.8% compliant.',
+    findings: '100% equipment audit passed. All 48 sanctioned assets tagged and active. Batch attendance 96.8% compliant.',
     evidence_count: 22,
   },
 ]
