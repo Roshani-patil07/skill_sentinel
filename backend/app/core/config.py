@@ -3,10 +3,12 @@ import sys
 from typing import List
 from pydantic import BaseModel
 
-# Ensure ai-engine directory is in sys.path
+# Ensure ai-engine directory and local backend directory are in sys.path
+backend_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 ai_engine_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../ai-engine"))
-if ai_engine_path not in sys.path:
-    sys.path.insert(0, ai_engine_path)
+for p in [ai_engine_path, backend_root]:
+    if os.path.exists(p) and p not in sys.path:
+        sys.path.insert(0, p)
 
 class Settings(BaseModel):
     APP_NAME: str = "SKILL-SENTINEL"
