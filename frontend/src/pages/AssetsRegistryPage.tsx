@@ -8,6 +8,7 @@ import { StatusBadge } from '../components/ui/StatusBadge'
 import { FilterBar, FilterConfig } from '../components/ui/FilterBar'
 import { Search } from '../components/ui/Search'
 import { LoadingState } from '../components/ui/LoadingState'
+import { MOCK_ASSETS } from '../data/mockData'
 
 interface AssetRecord {
   id: string
@@ -22,80 +23,35 @@ interface AssetRecord {
 }
 
 export const AssetsRegistryPage: React.FC = () => {
-  const [assets, setAssets] = useState<AssetRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const defaultAssets = MOCK_ASSETS.map((a) => ({
+    id: a.id,
+    asset_tag: a.asset_tag,
+    model_name: a.name,
+    category: a.category,
+    centre_name: a.centre_name,
+    centre_code: a.centre_id,
+    status: a.status === 'VERIFIED' ? 'VERIFIED_PRESENT' : a.status === 'MISSING' ? 'MISSING' : 'TAMPERED',
+    last_verified: a.last_verified_at,
+    qr_code: a.qr_code,
+  }))
+
+  const [assets, setAssets] = useState<AssetRecord[]>(defaultAssets)
+  const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
 
   const fetchAssets = async () => {
-    setLoading(true)
     try {
       const res = await fetch('/api/v1/assets')
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
         setAssets(data)
       } else {
-        // High-fidelity fallback list
-        setAssets([
-          {
-            id: 'ast-101',
-            asset_tag: 'OKH-PC-2026-001',
-            model_name: 'Dell OptiPlex 7090 Tower',
-            category: 'Computer',
-            centre_name: 'PMKK Okhla Industrial Skill Hub',
-            centre_code: 'DEL-OKH-042',
-            status: 'VERIFIED_PRESENT',
-            last_verified: 'Today, 10:15 AM',
-            qr_code: 'QR-OKH-001',
-          },
-          {
-            id: 'ast-102',
-            asset_tag: 'OKH-PC-2026-004',
-            model_name: 'Dell OptiPlex 7090 Tower',
-            category: 'Computer',
-            centre_name: 'PMKK Okhla Industrial Skill Hub',
-            centre_code: 'DEL-OKH-042',
-            status: 'MISSING',
-            last_verified: '3 days ago',
-            qr_code: 'QR-OKH-004',
-          },
-          {
-            id: 'ast-103',
-            asset_tag: 'OKH-CNC-2026-001',
-            model_name: 'Haas VF-2 CNC Milling Trainer',
-            category: 'Machine',
-            centre_name: 'PMKK Okhla Industrial Skill Hub',
-            centre_code: 'DEL-OKH-042',
-            status: 'VERIFIED_PRESENT',
-            last_verified: 'Yesterday, 04:30 PM',
-            qr_code: 'QR-OKH-CNC-01',
-          },
-          {
-            id: 'ast-104',
-            asset_tag: 'OKH-WLD-2026-002',
-            model_name: 'VR Welding Simulator',
-            category: 'Machine',
-            centre_name: 'PMKK Okhla Industrial Skill Hub',
-            centre_code: 'DEL-OKH-042',
-            status: 'MISSING',
-            last_verified: 'Last week',
-            qr_code: 'QR-OKH-WLD-02',
-          },
-          {
-            id: 'ast-105',
-            asset_tag: 'DWK-PC-2026-001',
-            model_name: 'HP ProDesk 400 G7',
-            category: 'Computer',
-            centre_name: 'PMKK Dwarka Electronics Centre',
-            centre_code: 'DEL-DWK-012',
-            status: 'VERIFIED_PRESENT',
-            last_verified: 'Yesterday, 11:00 AM',
-            qr_code: 'QR-DWK-001',
-          },
-        ])
+        setAssets(defaultAssets)
       }
     } catch (e) {
-      console.error(e)
+      console.warn('Assets API offline, using local mock registry:', e)
+      setAssets(defaultAssets)
     } finally {
       setLoading(false)
     }

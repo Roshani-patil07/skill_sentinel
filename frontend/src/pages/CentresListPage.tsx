@@ -7,6 +7,7 @@ import { FilterBar, FilterConfig } from '../components/ui/FilterBar'
 import { Search } from '../components/ui/Search'
 import { LoadingState } from '../components/ui/LoadingState'
 import { useSentinelStore, TrainingCentreItem } from '../store/useSentinelStore'
+import { MOCK_CENTRES } from '../data/mockData'
 
 export const CentresListPage: React.FC = () => {
   const navigate = useNavigate()
@@ -16,21 +17,24 @@ export const CentresListPage: React.FC = () => {
   const [stateFilter, setStateFilter] = useState('ALL')
   const [riskFilter, setRiskFilter] = useState('ALL')
 
+  const effectiveCentres = centres.length > 0 ? centres : MOCK_CENTRES
+
   useEffect(() => {
     if (centres.length === 0) {
       setLoading(true)
       fetch('/api/v1/centres')
         .then((res) => res.json())
         .then((data) => {
-          if (Array.isArray(data)) setCentres(data)
+          if (Array.isArray(data) && data.length > 0) setCentres(data)
         })
+        .catch(() => setCentres(MOCK_CENTRES))
         .finally(() => setLoading(false))
     }
   }, [centres.length, setCentres])
 
-  const states = Array.from(new Set(centres.map((c) => c.state_name).filter(Boolean)))
+  const states = Array.from(new Set(effectiveCentres.map((c) => c.state_name).filter(Boolean)))
 
-  const filteredCentres = centres.filter((c) => {
+  const filteredCentres = effectiveCentres.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.centre_code.toLowerCase().includes(searchQuery.toLowerCase()) ||

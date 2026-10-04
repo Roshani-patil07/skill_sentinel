@@ -28,11 +28,11 @@ export const AppLayout: React.FC = () => {
     fetch('/api/v1/centres')
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setCentres(data)
         }
       })
-      .catch((err) => console.error('Failed to load centres:', err))
+      .catch((err) => console.warn('Centres API offline, using local mock registry:', err))
   }, [setCentres])
 
   // Real-Time WebSocket Connection Handler with Heartbeat & Auto-reconnect

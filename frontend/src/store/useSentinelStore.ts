@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { MOCK_CENTRES, MOCK_DISCREPANCIES } from '../data/mockData'
 
 export type UserRole =
   | 'SUPER_ADMIN'
@@ -108,10 +109,10 @@ export const useSentinelStore = create<SentinelState>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   currentRole: 'NATIONAL_OFFICER',
   setRole: (role) => set({ currentRole: role }),
-  selectedCentreId: 'tc-del-042',
+  selectedCentreId: 'tc-pune-047',
   setSelectedCentreId: (id) => set({ selectedCentreId: id }),
 
-  centres: [],
+  centres: MOCK_CENTRES,
   setCentres: (centres) => set({ centres }),
   updateCentreRisk: (centreId, newScore, newLevel) =>
     set((state) => ({
@@ -122,7 +123,7 @@ export const useSentinelStore = create<SentinelState>((set) => ({
       ),
     })),
 
-  discrepancies: [],
+  discrepancies: MOCK_DISCREPANCIES,
   setDiscrepancies: (discrepancies) => set({ discrepancies }),
   addDiscrepancy: (item) =>
     set((state) => ({

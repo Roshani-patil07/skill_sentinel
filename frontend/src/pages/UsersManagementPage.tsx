@@ -14,8 +14,39 @@ interface UserItem {
 }
 
 export const UsersManagementPage: React.FC = () => {
-  const [users, setUsers] = useState<UserItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const defaultUsers: UserItem[] = [
+    {
+      id: 'u-1',
+      email: 'national.officer@skillsentinel.gov.in',
+      full_name: 'Dr. Rajesh Sharma, Joint Secretary',
+      role: 'NATIONAL_OFFICER',
+      is_active: true,
+    },
+    {
+      id: 'u-2',
+      email: 'maharashtra.director@skillsentinel.gov.in',
+      full_name: 'Pooja Kulkarni, IAS',
+      role: 'STATE_OFFICER',
+      is_active: true,
+    },
+    {
+      id: 'u-3',
+      email: 'pune.dso@skillsentinel.gov.in',
+      full_name: 'Vikram Rawat',
+      role: 'DISTRICT_OFFICER',
+      is_active: true,
+    },
+    {
+      id: 'u-4',
+      email: 'inspector.ar@skillsentinel.gov.in',
+      full_name: 'Amitabh Sen, Senior Vigilance Auditor',
+      role: 'INSPECTION_OFFICER',
+      is_active: true,
+    },
+  ]
+
+  const [users, setUsers] = useState<UserItem[]>(defaultUsers)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/v1/users')
@@ -23,40 +54,12 @@ export const UsersManagementPage: React.FC = () => {
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setUsers(data)
-        } else {
-          setUsers([
-            {
-              id: 'u-1',
-              email: 'national.officer@skillsentinel.gov.in',
-              full_name: 'Dr. Rajesh Sharma',
-              role: 'NATIONAL_OFFICER',
-              is_active: true,
-            },
-            {
-              id: 'u-2',
-              email: 'delhi.director@skillsentinel.gov.in',
-              full_name: 'Pooja Verma, IAS',
-              role: 'STATE_OFFICER',
-              is_active: true,
-            },
-            {
-              id: 'u-3',
-              email: 'district.magistrate@skillsentinel.gov.in',
-              full_name: 'Vikram Rawat',
-              role: 'DISTRICT_OFFICER',
-              is_active: true,
-            },
-            {
-              id: 'u-4',
-              email: 'inspector.ar@skillsentinel.gov.in',
-              full_name: 'Amitabh Sen',
-              role: 'INSPECTION_OFFICER',
-              is_active: true,
-            },
-          ])
         }
       })
-      .catch((e) => console.error(e))
+      .catch((e) => {
+        console.warn('Users API offline, using local officer directory:', e)
+        setUsers(defaultUsers)
+      })
       .finally(() => setLoading(false))
   }, [])
 

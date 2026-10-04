@@ -9,6 +9,7 @@ import { Card } from '../components/ui/Card'
 import { LoadingState } from '../components/ui/LoadingState'
 import { Modal } from '../components/ui/Modal'
 import { useSentinelStore } from '../store/useSentinelStore'
+import { MOCK_INSPECTIONS } from '../data/mockData'
 
 interface InspectionRecord {
   id: string
@@ -22,52 +23,23 @@ interface InspectionRecord {
 
 export const InspectionsPage: React.FC = () => {
   const { setToast } = useSentinelStore()
-  const [inspections, setInspections] = useState<InspectionRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedInspection, setSelectedInspection] = useState<InspectionRecord | null>(null)
+  const [inspections, setInspections] = useState<any[]>(MOCK_INSPECTIONS)
+  const [loading, setLoading] = useState(false)
+  const [selectedInspection, setSelectedInspection] = useState<any | null>(null)
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false)
 
   const fetchInspections = async () => {
-    setLoading(true)
     try {
       const res = await fetch('/api/v1/inspections')
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
         setInspections(data)
       } else {
-        // High-fidelity fallback list
-        setInspections([
-          {
-            id: 'insp-001',
-            centre_code: 'DEL-OKH-042',
-            centre_name: 'PMKK Okhla Industrial Skill Hub',
-            inspection_type: 'SURPRISE_PHYSICAL_AUDIT',
-            status: 'SCHEDULED',
-            scheduled_date: 'Tomorrow, 10:00 AM',
-            findings: 'Triggered by repeated attendance discrepancies (71.4% gap).',
-          },
-          {
-            id: 'insp-002',
-            centre_code: 'DEL-DWK-012',
-            centre_name: 'PMKK Dwarka Electronics Centre',
-            inspection_type: 'ROUTINE_ANNUAL_AUDIT',
-            status: 'COMPLETED',
-            scheduled_date: 'Sept 28, 2026',
-            findings: 'All sanctioned computer workstations and biometric terminals verified.',
-          },
-          {
-            id: 'insp-003',
-            centre_code: 'DEL-RHN-088',
-            centre_name: 'PMKK Rohini Advanced Technical Training',
-            inspection_type: 'ASSET_VERIFICATION',
-            status: 'IN_PROGRESS',
-            scheduled_date: 'Oct 04, 2026',
-            findings: 'Inspector on-site utilizing Mobile AR QR inspection suite.',
-          },
-        ])
+        setInspections(MOCK_INSPECTIONS)
       }
     } catch (e) {
-      console.error(e)
+      console.warn('Inspections API offline, using local mock audits:', e)
+      setInspections(MOCK_INSPECTIONS)
     } finally {
       setLoading(false)
     }

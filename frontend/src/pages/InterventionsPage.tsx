@@ -10,6 +10,7 @@ import { MetricCard } from '../components/ui/MetricCard'
 import { Drawer } from '../components/ui/Drawer'
 import { LoadingState } from '../components/ui/LoadingState'
 import { useSentinelStore } from '../store/useSentinelStore'
+import { MOCK_INTERVENTIONS } from '../data/mockData'
 
 interface InterventionItem {
   id: string
@@ -27,66 +28,25 @@ interface InterventionItem {
 
 export const InterventionsPage: React.FC = () => {
   const { centres, setToast } = useSentinelStore()
-  const [interventions, setInterventions] = useState<InterventionItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [interventions, setInterventions] = useState<any[]>(MOCK_INTERVENTIONS)
+  const [loading, setLoading] = useState(false)
   const [statusFilter, setStatusFilter] = useState('ALL')
-  const [selectedIntervention, setSelectedIntervention] = useState<InterventionItem | null>(null)
+  const [selectedIntervention, setSelectedIntervention] = useState<any | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Fetch interventions from backend
   const fetchInterventions = async () => {
-    setLoading(true)
     try {
       const res = await fetch('/api/v1/interventions')
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
         setInterventions(data)
       } else {
-        // High-fidelity fallback list
-        setInterventions([
-          {
-            id: 'int-001',
-            centre_id: 'tc-del-042',
-            centre_code: 'DEL-OKH-042',
-            centre_name: 'PMKK Okhla Industrial Skill Hub',
-            intervention_type: 'SURPRISE_PHYSICAL_AUDIT',
-            priority: 'CRITICAL',
-            reason: 'Observed physical headcount 71.4% below biometric claims across 3 consecutive days.',
-            owner: 'Inspector A. Sharma',
-            deadline: 'Tomorrow, 02:00 PM',
-            status: 'OPEN',
-            evidence_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-          },
-          {
-            id: 'int-002',
-            centre_id: 'tc-del-042',
-            centre_code: 'DEL-OKH-042',
-            centre_name: 'PMKK Okhla Industrial Skill Hub',
-            intervention_type: 'ASSET_VERIFICATION',
-            priority: 'HIGH',
-            reason: '1 sanctioned welding simulator and 2 IoT workstations unverified in practical room.',
-            owner: 'District Officer V. Rawat',
-            deadline: 'Oct 06, 2026',
-            status: 'IN_PROGRESS',
-            evidence_hash: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',
-          },
-          {
-            id: 'int-003',
-            centre_id: 'tc-del-012',
-            centre_code: 'DEL-DWK-012',
-            centre_name: 'PMKK Dwarka Electronics Centre',
-            intervention_type: 'EVIDENCE_REQUEST',
-            priority: 'MODERATE',
-            reason: 'Camera RTSP uptime fell below 85% during morning assessment session.',
-            owner: 'System Auto-Dispatcher',
-            deadline: 'Oct 07, 2026',
-            status: 'RESOLVED',
-            evidence_hash: 'f0e1d2c3b4a5968778695a4b3c2d1e0ff0e1d2c3b4a5968778695a4b3c2d1e0f',
-          },
-        ])
+        setInterventions(MOCK_INTERVENTIONS)
       }
     } catch (e) {
-      console.error(e)
+      console.warn('Interventions API offline, using local mock cases:', e)
+      setInterventions(MOCK_INTERVENTIONS)
     } finally {
       setLoading(false)
     }

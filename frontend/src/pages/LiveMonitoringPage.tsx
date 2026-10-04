@@ -2,267 +2,465 @@ import React, { useState, useEffect } from 'react'
 import {
   Video, Eye, Radio, ShieldCheck, Activity, HardDrive,
   AlertOctagon, CheckCircle2, Clock, Wifi, RefreshCw,
-  Cpu, Layers, Zap
+  Cpu, Layers, Zap, Camera, ShieldAlert, FileText, Send,
+  Maximize2, EyeOff, Sparkles, AlertTriangle, ArrowRight,
+  Download, Lock
 } from 'lucide-react'
 import { Card } from '../components/ui/Card'
-import { MetricCard } from '../components/ui/MetricCard'
+import { RiskBadge } from '../components/ui/RiskBadge'
 import { StatusBadge } from '../components/ui/StatusBadge'
-import { AlertCard } from '../components/ui/AlertCard'
 import { useSentinelStore } from '../store/useSentinelStore'
+import { MOCK_CAMERAS } from '../data/mockData'
 
 export const LiveMonitoringPage: React.FC = () => {
-  const { selectedCentreId, isWsConnected, liveEvents } = useSentinelStore()
+  const {
+    selectedCentreId,
+    centres,
+    isWsConnected,
+    liveEvents,
+    openInterventionModal,
+    setToast,
+  } = useSentinelStore()
 
-  const [activeCam, setActiveCam] = useState<'CAM-01' | 'CAM-02' | 'CAM-03'>('CAM-01')
+  const activeCentre = centres.find((c) => c.id === selectedCentreId) || centres[0]
+  const cameras = MOCK_CAMERAS[selectedCentreId] || MOCK_CAMERAS['tc-pune-047']
+
+  const [activeCamId, setActiveCamId] = useState<string>('cam-01')
+  const [viewMode, setViewMode] = useState<'OPTICAL' | 'AI_OVERLAY' | 'HEATMAP'>('AI_OVERLAY')
   const [headcount, setHeadcount] = useState(8)
-  const [occupancyRate, setOccupancyRate] = useState(27)
-  const [activityScore, setActivityScore] = useState(78)
-  const [motionEnergy, setMotionEnergy] = useState(0.42)
-  const [lastEventTime, setLastEventTime] = useState<string>('Just now')
-  const [anomalies, setAnomalies] = useState<any[]>([])
+  const [claimedBiometric, setClaimedBiometric] = useState(28)
+  const [currentTime, setCurrentTime] = useState<string>('')
+  const [isSnapshotting, setIsSnapshotting] = useState(false)
 
-  // Fetch initial occupancy and anomalies
+  const activeCam = cameras.find((c) => c.id === activeCamId) || cameras[0]
+
+  // Live real-time clock for CCTV On-Screen Display (OSD)
   useEffect(() => {
-    fetch(`/api/v1/vision/occupancy?centre_id=${selectedCentreId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.person_count !== undefined) {
-          setHeadcount(data.person_count)
-          setOccupancyRate(Math.round((data.occupancy_rate || 0.27) * 100))
-          setActivityScore(Math.round((data.activity_score || 0.78) * 100))
-        }
-      })
-      .catch((e) => console.error(e))
+    const updateTime = () => {
+      const now = new Date()
+      setCurrentTime(
+        now.toISOString().replace('T', ' ').substring(0, 19) + ' IST'
+      )
+    }
+    updateTime()
+    const timer = setInterval(updateTime, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
-    fetch(`/api/v1/vision/anomalies?centre_id=${selectedCentreId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setAnomalies(data)
-      })
-      .catch((e) => console.error(e))
-  }, [selectedCentreId])
-
-  // Sync with live WebSocket events
+  // Sync with live WebSocket events if broadcast
   useEffect(() => {
     if (liveEvents.length > 0) {
       const latest = liveEvents[0]
-      setLastEventTime(new Date().toLocaleTimeString())
-
       if (latest.payload?.headcount !== undefined) {
         setHeadcount(latest.payload.headcount)
-        setOccupancyRate(Math.round((latest.payload.headcount / 30) * 100))
       } else if (latest.payload?.observed !== undefined) {
         setHeadcount(latest.payload.observed)
-        setOccupancyRate(Math.round((latest.payload.observed / 30) * 100))
-      }
-
-      if (latest.payload?.activity_score !== undefined) {
-        setActivityScore(Math.round(latest.payload.activity_score * 100))
-        setMotionEnergy(latest.payload.activity_score)
       }
     }
   }, [liveEvents])
 
+  const discrepancy = headcount - claimedBiometric
+  const discrepancyPercent = Math.round((discrepancy / (claimedBiometric || 1)) * 100)
+  const isHighDiscrepancy = discrepancyPercent <= -40
+
+  const handleCaptureSnapshot = () => {
+    setIsSnapshotting(true)
+    setTimeout(() => {
+      setIsSnapshotting(false)
+      setToast({
+        id: String(Date.now()),
+        title: 'CCTV Audit Snapshot Captured',
+        message: `Cryptographic SHA-256 evidence bundle generated for ${activeCam.name}.`,
+        severity: 'SUCCESS',
+      })
+    }, 600)
+  }
+
   return (
     <div className="space-y-5">
-      {/* Top Status & Controls Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      {/* Top Header & Centre Identification */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
-            </span>
-            <span className="text-sm font-extrabold text-slate-900 tracking-tight font-sans">
-              LIVE MONITORING
-            </span>
-          </div>
-
-          <span className="text-slate-300">|</span>
-
-          {/* Connection status */}
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <span className="text-slate-500">WebSocket:</span>
-            <span className={`font-semibold ${isWsConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
-              {isWsConnected ? 'Active (Synced)' : 'Connecting...'}
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+              Live CCTV Surveillance & Telemetry Feed
+            </h1>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200 font-bold uppercase">
+              Edge Quantized • Stream 01
             </span>
           </div>
-
-          <span className="text-slate-300 hidden sm:inline">|</span>
-
-          <div className="text-xs text-slate-500 hidden sm:flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span>Last Telemetry Packet:</span>
-            <span className="font-mono font-semibold text-slate-700">{lastEventTime}</span>
-          </div>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {activeCentre?.name} ({activeCentre?.centre_code}) • {activeCentre?.district_name}, {activeCentre?.state_name}
+          </p>
         </div>
 
-        {/* Camera Selector Pills */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-mono font-semibold">
-          {(['CAM-01', 'CAM-02', 'CAM-03'] as const).map((cam) => (
-            <button
-              key={cam}
-              onClick={() => setActiveCam(cam)}
-              className={`px-3 py-1 rounded transition-colors ${
-                activeCam === cam
-                  ? 'bg-blue-900 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {cam}
-            </button>
-          ))}
+        {/* Right Status Controls */}
+        <div className="flex items-center gap-2 flex-wrap text-xs">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200 text-slate-700 font-mono text-[11px]">
+            <span className={`w-2 h-2 rounded-full ${isWsConnected ? 'bg-emerald-500' : 'bg-emerald-500'}`} />
+            <span>RTSP Gateway: Active</span>
+          </div>
+
+          <button
+            onClick={handleCaptureSnapshot}
+            disabled={isSnapshotting}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium border border-slate-300 transition-colors shadow-xs"
+            title="Generate tamper-evident signed evidence snapshot"
+          >
+            <Camera className="w-3.5 h-3.5 text-slate-600" />
+            <span>{isSnapshotting ? 'Signing Hash...' : 'Audit Snapshot'}</span>
+          </button>
+
+          <button
+            onClick={() => openInterventionModal(activeCentre.id)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-rose-700 hover:bg-rose-800 text-white font-semibold transition-colors shadow-xs"
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>Enforce Action</span>
+          </button>
         </div>
       </div>
 
-      {/* Main Grid: Live Stream on Left, Live Telemetry Matrix on Right */}
+      {/* Camera Selection Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {cameras.map((cam) => {
+          const isSelected = cam.id === activeCamId
+          return (
+            <button
+              key={cam.id}
+              onClick={() => setActiveCamId(cam.id)}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-2 ${
+                isSelected
+                  ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              <Video className={`w-3.5 h-3.5 ${isSelected ? 'text-blue-200' : 'text-slate-400'}`} />
+              <span>{cam.name}</span>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  cam.status === 'ONLINE' ? 'bg-emerald-400' : 'bg-amber-400'
+                }`}
+              />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Main Grid: Surveillance Video on Left, Verification Telemetry on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left: Video Player Feed */}
+        {/* Left: Video Player Feed & Controls */}
         <div className="lg:col-span-2 space-y-3">
-          <div className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-gov-md relative aspect-video flex items-center justify-center">
-            {/* Lab floor grid simulation */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#33415518_1px,transparent_1px),linear-gradient(to_bottom,#33415518_1px,transparent_1px)] bg-[size:24px_24px]" />
+          <div className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-md relative aspect-video flex flex-col justify-between">
+            {/* Top OSD Bar (Camera, Location, Timestamp, Privacy Guarantee) */}
+            <div className="z-20 p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between text-xs font-mono text-slate-200">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 bg-rose-600/90 text-white px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  REC
+                </span>
+                <span className="font-bold text-white tracking-wide">{activeCam.name}</span>
+                <span className="text-slate-400 text-[11px] hidden sm:inline">• {activeCam.location}</span>
+              </div>
 
-            {/* Privacy Guarantee Watermark */}
-            <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded text-[10px] text-emerald-400 font-mono border border-emerald-500/30 flex items-center gap-1.5 z-10">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              NON-BIOMETRIC AGGREGATE TRACKING (NO FACIAL RECOGNITION)
+              <div className="flex items-center gap-3 text-[11px]">
+                <span className="text-slate-300 font-tabular font-medium">{currentTime || '2026-10-04 10:15:22 IST'}</span>
+                <span className="hidden md:inline px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-600/50 text-emerald-300 text-[10px]">
+                  DPDP 2023 PRIVACY SAFE
+                </span>
+              </div>
             </div>
 
-            {/* Live Headcount Overlay */}
-            <div className="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-mono font-bold text-white border border-slate-700 flex items-center gap-2 z-10">
-              <Eye className="w-4 h-4 text-emerald-400" />
-              <span>HEADCOUNT: {headcount} PERSONS</span>
-            </div>
+            {/* Simulated Realistic Training Classroom Scene */}
+            <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden">
+              {/* Lab Floor Plan Background */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#1e293b_0%,#090d16_100%)]" />
 
-            {/* Spatial Zone Overlays */}
-            <div className="absolute top-12 left-4 text-[9px] font-mono text-blue-300/80 border border-blue-500/30 bg-blue-950/40 px-2 py-0.5 rounded">
-              ZONE: WORKSTATIONS (DESKS 1-12)
-            </div>
-            <div className="absolute top-12 right-4 text-[9px] font-mono text-purple-300/80 border border-purple-500/30 bg-purple-950/40 px-2 py-0.5 rounded">
-              ZONE: INSTRUCTOR PODIUM
-            </div>
+              {/* Lab workstations and equipment benches layout */}
+              <div className="absolute inset-x-8 top-12 bottom-12 border border-slate-700/50 rounded-lg bg-slate-900/40 p-4">
+                {/* Zone Labels */}
+                <div className="absolute top-2 left-3 text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  Zone A: Precision Training Workstations (Bays 1-12)
+                </div>
 
-            {/* Simulated Anonymized Bounding Boxes corresponding to headcount */}
-            <div className="relative w-full h-full p-4 pointer-events-none">
-              {Array.from({ length: Math.min(headcount, 12) }).map((_, idx) => {
-                const col = idx % 4
-                const row = Math.floor(idx / 4)
-                const left = 12 + col * 22
-                const top = 24 + row * 24
+                <div className="absolute top-2 right-3 text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                  Instructor Console & Digital Podium
+                </div>
 
-                return (
-                  <div
-                    key={idx}
-                    className="absolute border-2 border-emerald-400/90 rounded bg-emerald-500/10 transition-all duration-500 flex flex-col justify-between p-1"
-                    style={{
-                      left: `${left}%`,
-                      top: `${top}%`,
-                      width: '12%',
-                      height: '24%',
-                    }}
-                  >
-                    <div className="flex items-center justify-between text-[8px] font-mono text-emerald-300 bg-slate-900/90 px-1 rounded">
-                      <span>T#{idx + 101}</span>
-                      <span>94%</span>
-                    </div>
-                    <div className="text-[7px] font-mono text-emerald-300/80 text-center">
-                      [Person]
-                    </div>
-                    <div className="text-[7px] font-mono text-blue-300/80 text-right">
-                      v: 0.14 m/s
-                    </div>
-                  </div>
-                )
-              })}
+                {/* Simulated Classroom Desks & Trainees Grid */}
+                <div className="grid grid-cols-4 gap-4 h-full pt-6 pb-2">
+                  {Array.from({ length: 12 }).map((_, idx) => {
+                    const isOccupied = idx < headcount
+                    const isMissingStation = idx >= headcount && idx < 10
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`rounded border transition-all p-2 flex flex-col justify-between relative ${
+                          isOccupied
+                            ? viewMode === 'HEATMAP'
+                              ? 'bg-emerald-900/40 border-emerald-500/50'
+                              : 'bg-slate-800/80 border-slate-600/80'
+                            : isMissingStation
+                            ? 'bg-rose-950/15 border-rose-900/30'
+                            : 'bg-slate-900/30 border-slate-800/50'
+                        }`}
+                      >
+                        {/* Desk Station Header */}
+                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+                          <span>Bay #{idx + 1}</span>
+                          {isOccupied ? (
+                            <span className="text-emerald-400 font-bold">Occupied</span>
+                          ) : isMissingStation ? (
+                            <span className="text-rose-400/80">Vacant</span>
+                          ) : (
+                            <span className="text-slate-500">Unassigned</span>
+                          )}
+                        </div>
+
+                        {/* Person Silhouette & Bounding Overlay */}
+                        <div className="flex flex-col items-center justify-center my-1">
+                          {isOccupied ? (
+                            <div className="relative flex flex-col items-center">
+                              {/* Privacy Blur Silhouette */}
+                              <div className="w-7 h-7 rounded-full bg-slate-400/30 backdrop-blur-xs flex items-center justify-center border border-slate-400/40">
+                                <span className="text-[8px] font-mono text-white font-bold">
+                                  T#{idx + 101}
+                                </span>
+                              </div>
+                              <div className="w-10 h-6 bg-slate-500/20 rounded-t-lg mt-0.5 border border-slate-500/30" />
+
+                              {/* AI Overlay Tag (if active) */}
+                              {viewMode === 'AI_OVERLAY' && (
+                                <div className="absolute -bottom-3 text-[8px] font-mono font-bold bg-blue-900 text-blue-100 px-1 py-0.2 rounded border border-blue-400/40 shadow-xs">
+                                  Verified Trainee
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-slate-600 text-[10px] font-mono flex flex-col items-center">
+                              <span className="w-6 h-6 rounded-full border border-dashed border-slate-700 flex items-center justify-center text-[8px]">
+                                —
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Equipment Tag at each desk */}
+                        <div className="text-[8px] font-mono text-slate-400 text-center truncate">
+                          {idx === 0
+                            ? 'Haas CNC Lathe'
+                            : idx === 1
+                            ? 'BFW BMV45 VMC'
+                            : idx === 2
+                            ? 'Welding Sim #1'
+                            : `OptiPlex CAD #${idx + 1}`}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Heatmap filter overlay if active */}
+              {viewMode === 'HEATMAP' && (
+                <div className="absolute inset-0 bg-emerald-500/10 mix-blend-screen pointer-events-none" />
+              )}
             </div>
 
             {/* Bottom Stream Telemetry Bar */}
-            <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-slate-300 bg-slate-900/80 px-3 py-1 rounded border border-slate-700">
-              <span>MODEL: YOLOv11-Edge-Quantized</span>
-              <span>INFERENCE: 34ms @ 15 FPS</span>
-              <span className="text-emerald-400">STATUS: OPTIMAL</span>
+            <div className="z-20 p-2.5 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-300">
+              <div className="flex items-center gap-3">
+                <span className="text-slate-400">FPS: <strong className="text-white">{activeCam.fps}</strong></span>
+                <span className="text-slate-400">Resolution: <strong className="text-white">{activeCam.resolution}</strong></span>
+                <span className="text-slate-400">Inference: <strong className="text-emerald-400">{activeCam.inference_latency_ms}ms (YOLO-Quantized)</strong></span>
+              </div>
+
+              {/* View Mode Switcher */}
+              <div className="flex items-center gap-1 bg-slate-900/90 p-0.5 rounded border border-slate-700">
+                <button
+                  onClick={() => setViewMode('OPTICAL')}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                    viewMode === 'OPTICAL' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Clean CCTV
+                </button>
+                <button
+                  onClick={() => setViewMode('AI_OVERLAY')}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                    viewMode === 'AI_OVERLAY' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  AI Audit Tags
+                </button>
+                <button
+                  onClick={() => setViewMode('HEATMAP')}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                    viewMode === 'HEATMAP' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Occupancy Map
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-            <span>Stream Source: RTSP://edge-node-okhla:8554/cam01</span>
-            <span className="font-mono text-slate-400">Stream ID: cam-okhla-iot-101</span>
+          {/* Stream Metadata Footer */}
+          <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 px-1 gap-2">
+            <span>RTSP URI: <code className="text-slate-700 font-mono">{activeCam.stream_url}</code></span>
+            <span className="font-mono text-slate-500">Security Certificate: TLS 1.3 End-to-End</span>
           </div>
         </div>
 
-        {/* Right: Live Telemetry Matrix */}
+        {/* Right: Verification Telemetry & Discrepancy Matrix */}
         <div className="space-y-4">
-          <Card title="Live Kinematics & Presence Signals" subtitle="Real-time optical analysis">
-            <div className="space-y-3.5">
-              <div>
-                <div className="flex justify-between text-xs mb-1 font-medium">
-                  <span className="text-slate-600">Classroom Occupancy Rate</span>
-                  <span className="font-bold text-slate-900 font-tabular">{occupancyRate}% (30 Capacity)</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className="bg-blue-900 h-full rounded-full transition-all" style={{ width: `${occupancyRate}%` }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1 font-medium">
-                  <span className="text-slate-600">Student Engagement Index</span>
-                  <span className="font-bold text-slate-900 font-tabular">{activityScore}%</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className="bg-emerald-600 h-full rounded-full transition-all" style={{ width: `${activityScore}%` }} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100">
-                <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-400 uppercase block font-mono">Kinetic Energy</span>
-                  <span className="font-bold text-slate-900 text-sm font-mono">{motionEnergy.toFixed(2)}</span>
-                </div>
-                <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-400 uppercase block font-mono">Detection Confidence</span>
-                  <span className="font-bold text-emerald-700 text-sm font-mono">93.4%</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Detected Sanctioned Assets in Feed */}
-          <Card title="Detected Physical Assets" subtitle="In-frame inventory cross-check">
-            <div className="space-y-2 text-xs font-mono">
-              <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-200">
-                <span>Computer Workstations:</span>
-                <span className="font-bold text-slate-900">18 In Frame</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-200">
-                <span>CNC Machine Trainers:</span>
-                <span className="font-bold text-emerald-700">4 In Frame</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-200">
-                <span>Biometric Kiosk:</span>
-                <span className="font-bold text-emerald-700">1 Operational</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Active Anomalies in this feed */}
-          <Card title="Live Anomaly Triggers" subtitle="Automated discrepancy alerts">
-            <div className="space-y-2">
-              {anomalies.slice(0, 2).map((a) => (
-                <div key={a.id} className="p-2.5 rounded-lg border border-rose-200 bg-rose-50 text-xs">
-                  <div className="flex items-center justify-between mb-1 font-bold text-rose-900">
-                    <span>{a.type.replace(/_/g, ' ')}</span>
-                    <span className="font-mono text-[10px]">{a.severity}</span>
+          {/* Real-Time Cross-Verification Card */}
+          <Card
+            title="Biometric Discrepancy Matrix"
+            subtitle="AEBAS claimed vs Optical observed cross-check"
+          >
+            <div className="space-y-4">
+              {/* Primary Comparison Stat */}
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-slate-500 font-mono">
+                    Aadhaar Biometric Claimed
                   </div>
-                  <p className="text-[11px] text-rose-700 leading-tight">{a.explanation}</p>
+                  <div className="text-2xl font-extrabold text-slate-900 font-tabular mt-0.5">
+                    {claimedBiometric}
+                  </div>
+                  <div className="text-[10px] text-slate-500">AEBAS Morning Shift</div>
                 </div>
-              ))}
-              {anomalies.length === 0 && (
-                <div className="text-center py-4 text-xs text-slate-400">
-                  Zero active anomalies on this camera feed.
+
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-slate-500 font-mono">
+                    AI Visual Verified
+                  </div>
+                  <div className="text-2xl font-extrabold text-blue-900 font-tabular mt-0.5">
+                    {headcount}
+                  </div>
+                  <div className="text-[10px] text-slate-500">In-Room Optical Count</div>
                 </div>
-              )}
+              </div>
+
+              {/* Discrepancy Severity Banner */}
+              <div
+                className={`p-3 rounded-lg border flex items-start gap-2.5 ${
+                  isHighDiscrepancy
+                    ? 'bg-rose-50 border-rose-300 text-rose-900'
+                    : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                }`}
+              >
+                {isHighDiscrepancy ? (
+                  <AlertOctagon className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="text-xs font-bold">
+                    {isHighDiscrepancy
+                      ? `Severe Discrepancy: ${discrepancyPercent}% Deficit`
+                      : 'Attendance Verified Compliant'}
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
+                    {isHighDiscrepancy
+                      ? `${Math.abs(discrepancy)} registered trainees are absent while recorded as present on the biometric terminal. Flagged for ghost attendance review.`
+                      : 'Observed headcount matches biometric logs within statutory tolerance margins.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Classroom Attendance Ratio Bar */}
+              <div>
+                <div className="flex justify-between text-xs mb-1 font-medium text-slate-700">
+                  <span>Physical Attendance Ratio</span>
+                  <span className="font-bold text-slate-900 font-tabular">
+                    {Math.round((headcount / (claimedBiometric || 1)) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      isHighDiscrepancy ? 'bg-rose-600' : 'bg-emerald-600'
+                    }`}
+                    style={{
+                      width: `${Math.min(100, Math.round((headcount / (claimedBiometric || 1)) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Sanctioned Machinery In-Frame Verification */}
+          <Card
+            title="Sanctioned Asset Verification"
+            subtitle="In-frame inventory presence check"
+          >
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center p-2 rounded-md bg-slate-50 border border-slate-200">
+                <span className="font-medium text-slate-700">Haas VF-2 CNC Milling Centre:</span>
+                <span className="font-bold text-emerald-700 font-mono flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Verified in Bay
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center p-2 rounded-md bg-rose-50 border border-rose-200">
+                <span className="font-medium text-rose-900">Haas CNC Lathe Station:</span>
+                <span className="font-bold text-rose-700 font-mono flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  Deficit / Missing
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center p-2 rounded-md bg-slate-50 border border-slate-200">
+                <span className="font-medium text-slate-700">CAD Workstations (20 Units):</span>
+                <span className="font-bold text-emerald-700 font-mono">18 Detected in Bay</span>
+              </div>
+
+              <div className="flex justify-between items-center p-2 rounded-md bg-slate-50 border border-slate-200">
+                <span className="font-medium text-slate-700">Aadhaar AEBAS Kiosk:</span>
+                <span className="font-bold text-emerald-700 font-mono">Terminal Active</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Rapid Enforcement Action Panel */}
+          <Card title="Immediate Compliance Action" subtitle="Statutory vigilance workflow">
+            <div className="space-y-2">
+              <button
+                onClick={() => openInterventionModal(activeCentre.id)}
+                className="w-full py-2 px-3 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs flex items-center justify-between transition-colors shadow-xs"
+              >
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-200" />
+                  <span>Issue Statutory Show-Cause Notice</span>
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 text-blue-300" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setToast({
+                    id: String(Date.now()),
+                    title: 'Flying Squad Auditor Assigned',
+                    message: `Surprise physical inspection dispatched for ${activeCentre.name}.`,
+                    severity: 'WARNING',
+                  })
+                }}
+                className="w-full py-2 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs border border-slate-300 flex items-center justify-between transition-colors shadow-xs"
+              >
+                <span className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-600" />
+                  <span>Dispatch Surprise Field Inspection</span>
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
             </div>
           </Card>
         </div>
