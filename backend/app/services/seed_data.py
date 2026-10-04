@@ -158,32 +158,32 @@ def seed_database(db: Session, force_reseed: bool = False):
             db.add(Course(id=cr_id, course_code=cr_code, title=cr_title, sector=cr_sec, duration_hours=cr_dur))
     db.commit()
 
-    # 6. Seed Key Featured Training Centres (MUST BE INSERTED BEFORE USERS THAT REFERENCE THEM)
+    # 6. Seed Key Featured Training Centres
     # To precisely match Section 12 national overview:
-    # 120 Total = 103 Low (Healthy) + 11 Moderate (Watchlist) + 4 High Risk + 2 Critical
+    # 120 Total = 103 Healthy (<40) + 11 Watchlist (40-69, incl. Pune-047 at 54) + 4 High Risk (70-84) + 2 Critical (>=85)
     featured_centres = [
-        # 2 Critical Centres
-        ("tc-del-042", "DEL-OKH-042", "PMKK Okhla Industrial Skill Hub", "dist-dl-south", 28.5355, 77.2690, 78.5, "CRITICAL", "okhla.pmkk@skillsentinel.gov.in"),
-        ("tc-lko-077", "TC-LKO-077", "Awadh Vocational Excellence Academy", "dist-up-lko", 26.8524, 81.0022, 84.0, "CRITICAL", "lko.awadh@skillsentinel.gov.in"),
+        # 2 Critical Centres (Score >= 85)
+        ("tc-vns-009", "TC-UP-VNS-009", "Varanasi Advanced Mechatronics PMKK", "dist-up-vns", 25.3176, 82.9739, 88.5, "CRITICAL", "vns.mecha@skillsentinel.gov.in"),
+        ("tc-lko-077", "TC-UP-LKO-077", "Awadh Vocational Excellence Academy", "dist-up-lko", 26.8524, 81.0022, 91.0, "CRITICAL", "lko.awadh@skillsentinel.gov.in"),
 
-        # 4 High Risk Centres (Includes SIH Demo Centre: Centre Pune-047 at initial risk=54)
-        ("tc-pune-047", "Pune-047", "PMKK Pune Precision Engineering Centre", "dist-mh-pune", 18.5204, 73.8567, 54.0, "HIGH", "pune047@skillsentinel.gov.in"),
-        ("tc-knp-018", "TC-UP-KNP-018", "Kanpur Industrial Automation Academy", "dist-up-knp", 26.4499, 80.3319, 62.0, "HIGH", "kanpur.auto@skillsentinel.gov.in"),
-        ("tc-kol-092", "TC-WB-KOL-092", "Kolkata Advanced Manufacturing Institute", "dist-wb-kol", 22.5726, 88.3639, 58.5, "HIGH", "kolkata.mfg@skillsentinel.gov.in"),
-        ("tc-jpr-031", "TC-RJ-JPR-031", "Jaipur Solar & Renewable Skill Complex", "dist-rj-jpr", 26.9124, 75.7873, 56.0, "HIGH", "jaipur.solar@skillsentinel.gov.in"),
+        # 4 High Risk Centres (Score 70.0 - 84.9)
+        ("tc-del-042", "DEL-OKH-042", "PMKK Okhla Industrial Skill Hub", "dist-dl-south", 28.5355, 77.2690, 78.5, "HIGH", "okhla.pmkk@skillsentinel.gov.in"),
+        ("tc-knp-018", "TC-UP-KNP-018", "Kanpur Industrial Automation Academy", "dist-up-knp", 26.4499, 80.3319, 74.0, "HIGH", "kanpur.auto@skillsentinel.gov.in"),
+        ("tc-kol-092", "TC-WB-KOL-092", "Kolkata Advanced Manufacturing Institute", "dist-wb-kol", 22.5726, 88.3639, 76.5, "HIGH", "kolkata.mfg@skillsentinel.gov.in"),
+        ("tc-jpr-031", "TC-RJ-JPR-031", "Jaipur Solar & Renewable Skill Complex", "dist-rj-jpr", 26.9124, 75.7873, 72.0, "HIGH", "jaipur.solar@skillsentinel.gov.in"),
 
-        # 11 Watchlist / Moderate Centres (risk 26.0 - 50.0)
-        ("tc-mum-108", "TC-MUM-108", "Mega Skill Training Centre Andheri", "dist-mh-mumbai", 19.1136, 72.8697, 44.0, "MODERATE", "andheri.skill@skillsentinel.gov.in"),
-        ("tc-blr-021", "TC-BLR-021", "Karnataka Advanced Skill Center Electronic City", "dist-ka-blr", 12.8452, 77.6602, 42.0, "MODERATE", "blr.elcity@skillsentinel.gov.in"),
-        ("tc-chn-034", "TC-CHN-034", "Tamil Nadu Maritime & Manufacturing Institute", "dist-tn-chn", 13.0067, 80.2023, 38.5, "MODERATE", "guindy.skill@skillsentinel.gov.in"),
+        # 11 Watchlist Centres (Score 40.0 - 69.9) - MUST include Pune-047 at 54.0
+        ("tc-pune-047", "Pune-047", "PMKK Pune Precision Engineering Centre", "dist-mh-pune", 18.5204, 73.8567, 54.0, "MODERATE", "pune047@skillsentinel.gov.in"),
+        ("tc-mum-108", "TC-MUM-108", "Mega Skill Training Centre Andheri", "dist-mh-mumbai", 19.1136, 72.8697, 48.0, "MODERATE", "andheri.skill@skillsentinel.gov.in"),
+        ("tc-blr-021", "TC-BLR-021", "Karnataka Advanced Skill Center Electronic City", "dist-ka-blr", 12.8452, 77.6602, 45.0, "MODERATE", "blr.elcity@skillsentinel.gov.in"),
+        ("tc-chn-034", "TC-CHN-034", "Tamil Nadu Maritime & Manufacturing Institute", "dist-tn-chn", 13.0067, 80.2023, 42.5, "MODERATE", "guindy.skill@skillsentinel.gov.in"),
         ("tc-ahd-055", "TC-GJ-AHD-055", "Sabarmati Technical & Apparel Institute", "dist-gj-ahd", 23.0225, 72.5714, 46.0, "MODERATE", "ahd.skill@skillsentinel.gov.in"),
-        ("tc-hyd-083", "TC-TG-HYD-083", "Cyberabad IT & Hardware Vocational Institute", "dist-tg-hyd", 17.3850, 78.4867, 40.0, "MODERATE", "hyd.voc@skillsentinel.gov.in"),
-        ("tc-bhp-061", "TC-MP-BHP-061", "Bhopal Electric Mobility Training Centre", "dist-mp-bhp", 23.2599, 77.4126, 45.0, "MODERATE", "bhopal.ev@skillsentinel.gov.in"),
-        ("tc-del-088", "TC-DEL-088", "PMKK Rohini Advanced Technical Training", "dist-dl-west", 28.7041, 77.1025, 34.0, "MODERATE", "rohini.tech@skillsentinel.gov.in"),
-        ("tc-srt-019", "TC-GJ-SRT-019", "Surat Diamond & Textile Skill Centre", "dist-gj-srt", 21.1702, 72.8311, 37.0, "MODERATE", "surat.skill@skillsentinel.gov.in"),
-        ("tc-cbe-022", "TC-TN-CBE-022", "Coimbatore Mechatronics Training Hub", "dist-tn-cbe", 11.0168, 76.9558, 41.0, "MODERATE", "cbe.mech@skillsentinel.gov.in"),
-        ("tc-ind-038", "TC-MP-IND-038", "Malwa Pharmaceutical & Lab Technician PMKK", "dist-mp-ind", 22.7196, 75.8577, 39.0, "MODERATE", "indore.pharma@skillsentinel.gov.in"),
-        ("tc-nag-015", "TC-MH-NGP-015", "Vidarbha Logistics & Supply Chain Academy", "dist-mh-nagpur", 21.1458, 79.0882, 36.0, "MODERATE", "nagpur.log@skillsentinel.gov.in"),
+        ("tc-hyd-083", "TC-TG-HYD-083", "Cyberabad IT & Hardware Vocational Institute", "dist-tg-hyd", 17.3850, 78.4867, 44.0, "MODERATE", "hyd.voc@skillsentinel.gov.in"),
+        ("tc-bhp-061", "TC-MP-BHP-061", "Bhopal Electric Mobility Training Centre", "dist-mp-bhp", 23.2599, 77.4126, 47.0, "MODERATE", "bhopal.ev@skillsentinel.gov.in"),
+        ("tc-del-088", "TC-DEL-088", "PMKK Rohini Advanced Technical Training", "dist-dl-west", 28.7041, 77.1025, 41.0, "MODERATE", "rohini.tech@skillsentinel.gov.in"),
+        ("tc-srt-019", "TC-GJ-SRT-019", "Surat Diamond & Textile Skill Centre", "dist-gj-srt", 21.1702, 72.8311, 43.0, "MODERATE", "surat.skill@skillsentinel.gov.in"),
+        ("tc-cbe-022", "TC-TN-CBE-022", "Coimbatore Mechatronics Training Hub", "dist-tn-cbe", 11.0168, 76.9558, 49.0, "MODERATE", "cbe.mech@skillsentinel.gov.in"),
+        ("tc-ind-038", "TC-MP-IND-038", "Malwa Pharmaceutical & Lab Technician PMKK", "dist-mp-ind", 22.7196, 75.8577, 45.5, "MODERATE", "indore.pharma@skillsentinel.gov.in"),
     ]
 
     for cid, ccode, cname, did, lat, lon, rscore, rlvl, cemail in featured_centres:
